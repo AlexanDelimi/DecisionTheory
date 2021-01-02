@@ -1,0 +1,59 @@
+import pandas
+import re
+import numpy
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+
+
+start_time = time.time()    # Start the time.
+
+ps = PorterStemmer()    # Initialize the stemmer.
+tf_idf = TfidfVectorizer()  # Initialize tf-idf.
+es = EarlyStopping(monitor='val_loss', mode='min', verbose=1)   # Initialize early stopping.
+stop_words = set(stopwords.words('english'))    # Set language for stop words.
+
+filen = pandas.read_csv("./SocialMedia_Negative.csv")
+filep = pandas.read_csv("./SocialMedia_Positive.csv")
+file = pandas.concat([filen, filep], axis=0, ignore_index=True)
+text = file.Text
+labels = file.Sentiment
+
+for i,label in enumerate(labels):
+    if label == 'negative':
+        labels[i] = 0.0
+    else:
+        labels[i] = 1.0
+
+
+
+
+vector_text = text.to_numpy()
+# print(vector_text, "\n\n")
+vectors_of_words = []
+for strings in range(len(vector_text)):     # Enter each sentence of vector_text.
+    # print(vector_text[strings])
+    vector_text[strings] = re.sub(r'\w+:\/{2}[\d\w-]+(\.[\d\w-]+)*(?:(?:\/[^\s/]*))*', '', vector_text[strings], flags=re.MULTILINE)
+    vector_text[strings] = re.sub("[^a-zA-Z0-9 ]", "",vector_text[strings])
+    vector_text[strings] = vector_text[strings].lower()
+    for word in word_tokenize(vector_text[strings]):    # Enter each word of each sentence.
+        # print(word)
+        new_word = ps.stem(word)
+        vector_text[strings] = vector_text[strings].replace(word, new_word)
+        if new_word in stop_words:  # Stop word checking.
+            vector_text[strings] = vector_text[strings].replace(word, "")
+    vector_text[strings] = re.sub(' +',' ',vector_text[strings])
+    # print(vector_text[strings])
+
+# print("\n\n\n\n\n\n\n\n\n\n\n")
+# print(vector_text, "\n\n")
+
+x = tf_idf.fit(vector_text)
+# print(x.vocabulary_)
+#print(tf_idf.get_feature_names())
+
+x = tf_idf.transform(vector_text)   # Executes the tf-idf transformation.
+
