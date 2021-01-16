@@ -7,7 +7,9 @@ from sklearn.model_selection import train_test_split
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
-
+import time
+import tensorflow
+from keras.callbacks import EarlyStopping
 
 start_time = time.time()    # Start the time.
 
@@ -56,4 +58,50 @@ x = tf_idf.fit(vector_text)
 #print(tf_idf.get_feature_names())
 
 x = tf_idf.transform(vector_text)   # Executes the tf-idf transformation.
+
+# # print(x.shape)
+# print(x)
+# # print(x.toarray())
+
+df = pandas.DataFrame(x.toarray(), columns=tf_idf.get_feature_names())
+print("\n\n\n")
+# # pandas.set_option('display.max_columns', None)
+# # print(len(df))
+# # print(len(label))
+df.insert(len(df.columns), "labelz", labels, True)   # Inserting dataframe label in dataframe df.
+# # pandas.set_option('display.max_rows', None)
+# print(df, "\n\n")
+# print("Size of dataframe: \t\t", df.size, "\n\n")
+
+X_train, X_test, y_train, y_test = train_test_split(df.loc[:, df.columns != 'labelz'], df.labelz, test_size=0.25)   # Split to train and test.
+
+# print(X_train)
+
+# X_train = tensorflow.keras.utils.normalize(X_train, axis=0)
+# X_test = tensorflow.keras.utils.normalize(X_test, axis=0)
+# y_train = tensorflow.keras.utils.normalize(y_train, axis=0)
+
+num_y_train = y_train.to_numpy()
+num_y_test = y_test.to_numpy()
+num_x_test = X_test.to_numpy()
+num_x_train = X_train.to_numpy()
+
+model = tensorflow.keras.models.Sequential()    # Model initialization.
+model.add(tensorflow.keras.layers.Flatten())    # Flatten model. -> 1-D array like.
+model.add(tensorflow.keras.layers.Dense(64, activation=tensorflow.nn.relu))    # Add layer.
+model.add(tensorflow.keras.layers.Dense(64, activation=tensorflow.nn.relu))    # Add layer.
+model.add(tensorflow.keras.layers.Dense(2, activation=tensorflow.nn.softmax))   # Number of possible answers are 2 (0 || 1).
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])   # Model compilation.
+model.fit(num_x_train, num_y_train, epochs=2, batch_size=16, verbose=1, validation_data=(num_x_test, num_y_test), callbacks=[es])  # Model fit.
+
+val_loss, val_acc = model.evaluate(num_x_test, num_y_test )  # Model evaluation.
+print("\n\nLoss: \t\t", val_loss, "\nAccuracy: \t", val_acc, "\n\n")
+
+
+predictions = model.predict(num_x_test)  # Model predictions.
+# # print(predictions)
+
+predictions_list = list()
+for k in range(len(predictions)):   # For each prediction.
+    predictions_list.append(numpy.argmax(predictions[k]))   # Append prediction to predictions_list.
 
